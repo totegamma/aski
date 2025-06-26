@@ -16,7 +16,6 @@ import (
 	"github.com/nyaosorg/go-readline-ny/coloring"
 	"github.com/nyaosorg/go-readline-ny/simplehistory"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"strings"
 	"time"
@@ -67,20 +66,22 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 			return io.WriteString(w, fmt.Sprintf("%.*s > ", 6, cv.Last().Sha1))
 		}
 
-		input, err, interrupt := getInput(editor)
+		input, err := getInput(editor)
 		if err != nil {
+			if errors.Is(err, readline.CtrlC) {
+				fmt.Println("\nSIGINT received, exiting...")
+				return
+			} else if errors.Is(err, io.EOF) {
+				return
+			}
 			fmt.Printf("Error Occured: %v\n", err)
 			continue
-		}
-
-		if interrupt {
-			return
 		}
 
 		history.Add(input)
 
 		if input == "" {
-			return
+			continue
 		}
 
 		if input[0] == ':' {
@@ -147,26 +148,15 @@ func OneShot(cfg config.Config, cv conv.Conversation, isRestMode bool) (string, 
 	return data, nil
 }
 
-func getInput(reader *readline.Editor) (string, error, bool) {
-	sigintChan := make(chan os.Signal, 1)
-	signal.Notify(sigintChan, os.Interrupt)
+func getInput(reader *readline.Editor) (string, error) {
 
-	inputChan := make(chan string, 1)
-	go func() {
-		input, err := reader.ReadLine(context.Background())
-		if err != nil {
-			inputChan <- ""
-		} else {
-			inputChan <- strings.TrimSpace(input)
-		}
-	}()
+	ctx := context.Background()
 
-	select {
-	case input := <-inputChan:
-		return input, nil, false
-	case <-sigintChan:
-		return "", nil, true
+	input, err := reader.ReadLine(ctx)
+	if err != nil {
+		return "", err
 	}
+	return strings.TrimSpace(input), nil
 }
 
 func saveConversation(conv conv.Conversation) (string, error) {
