@@ -13,57 +13,112 @@ import (
 	"strings"
 )
 
+type cmdFn func(commands []string, conv conv.Conversation) (conv.Conversation, bool, error)
+
 type cmd struct {
 	name        string
 	description string
+	exec        cmdFn
 }
 
 var availableCommands = []cmd{
 	{
 		name:        ":history",
 		description: "Show conversation history.",
+		exec: func(commands []string, conv conv.Conversation) (conv.Conversation, bool, error) {
+			showContext(conv)
+			return nil, false, nil
+		},
 	},
 	{
 		name:        ":move",
 		description: "Change HEAD to another message.",
+		exec: func(commands []string, conv conv.Conversation) (conv.Conversation, bool, error) {
+			if len(commands) < 2 {
+				return nil, false, fmt.Errorf("no SHA1 partial provided")
+			}
+			err := changeHead(commands[1], conv)
+			return nil, false, err
+		},
 	},
 	{
 		name:        ":config",
 		description: "Open configuration directory.",
+		exec: func(commands []string, conv conv.Conversation) (conv.Conversation, bool, error) {
+			_ = config.OpenConfigDir()
+			return nil, false, nil
+		},
 	},
 	{
 		name: ":editor",
 		description: "Open an external text editor to add new message.\n" +
 			"  :editor sha1   - Edit the argument message and continue the conversation.\n" +
 			"  :editor latest - Edits the nearest own statement from HEAD.",
+		exec: func(commands []string, conv conv.Conversation) (conv.Conversation, bool, error) {
+			trim := ""
+			if len(commands) > 1 {
+				trim = strings.TrimSpace(commands[1])
+			}
+
+			if trim == "" {
+				return newMessage(conv)
+			}
+
+			return editMessage(conv, trim)
+		},
 	},
 	{
 		name: ":modify sha1",
 		description: "Modify the past conversation. HEAD does not move.\n" +
 			"                   Past conversations will be modified from the next transmission.",
+		exec: func(commands []string, conv conv.Conversation) (conv.Conversation, bool, error) {
+			if len(commands) < 2 {
+				return nil, false, fmt.Errorf("no SHA1 provided")
+			}
+			return modifyMessage(conv, commands[1])
+		},
 	},
 	{
 		name: ":param",
 		description: "Update profile custom parameter values.\n" +
 			"                   There is no need to change it for normal use.",
+		exec: func(commands []string, conv conv.Conversation) (conv.Conversation, bool, error) {
+			if len(commands) < 3 {
+				if len(commands) == 2 {
+					displayParameterValue(conv.GetProfile().CustomParameters, commands[1])
+					return conv, false, nil
+				}
+				fmt.Printf(customParametersDescription())
+				return nil, false, nil
+			}
+
+			cv, err := setProfileCustomParamValue(conv, commands[1], commands[2])
+			if err != nil {
+				return nil, false, err
+			}
+			return cv, false, err
+		},
 	},
 	{
 		name:        ":exit",
 		description: "Exit the program.",
+		exec: func(commands []string, conv conv.Conversation) (conv.Conversation, bool, error) {
+			return nil, false, fmt.Errorf("unknown command")
+		},
 	},
 }
 
-func matchCommand(input string) (string, bool) {
+func matchCommand(input string) (*cmd, bool) {
 	matched := false
-	var matchedCmd string
+	var matchedCmd *cmd
 
 	for _, cmd := range availableCommands {
 		if strings.HasPrefix(cmd.name, input) {
 			if matched {
-				return "", false // ambiguous input, more than one command matches
+				return nil, false // ambiguous input, more than one command matches
 			}
 			matched = true
-			matchedCmd = cmd.name
+			matchedCmd = &cmd
 		}
 	}
 
@@ -87,48 +142,8 @@ func Parse(input string, conv conv.Conversation) (conv.Conversation, bool, error
 	if !found {
 		return nil, false, fmt.Errorf(unknownCommand())
 	}
-	commands[0] = matchedCmd
 
-	if commands[0] == ":history" {
-		showContext(conv)
-		return nil, false, nil
-	} else if commands[0] == ":move" {
-		err := changeHead(commands[1], conv)
-		return nil, false, err
-	} else if commands[0] == ":config" {
-		_ = config.OpenConfigDir()
-		return nil, false, nil
-	} else if commands[0] == ":editor" {
-		trim := ""
-		if len(commands) > 1 {
-			trim = strings.TrimSpace(commands[1])
-		}
-
-		if trim == "" {
-			return newMessage(conv)
-		}
-
-		return editMessage(conv, trim)
-	} else if commands[0] == ":modify sha1" {
-		return modifyMessage(conv, commands[1])
-	} else if commands[0] == ":param" {
-		if len(commands) < 3 {
-			if len(commands) == 2 {
-				displayParameterValue(conv.GetProfile().CustomParameters, commands[1])
-				return conv, false, nil
-			}
-			fmt.Printf(customParametersDescription())
-			return nil, false, nil
-		}
-
-		cv, err := setProfileCustomParamValue(conv, commands[1], commands[2])
-		if err != nil {
-			return nil, false, err
-		}
-		return cv, false, err
-	}
-
-	return nil, false, fmt.Errorf("unknown command")
+	return matchedCmd.exec(commands, conv)
 }
 
 func changeHead(sha1Partial string, context conv.Conversation) error {
