@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kznrluk/aski/conv"
+	"github.com/kznrluk/aski/pkg/conv"
 	"github.com/sashabaranov/go-openai"
 	"io"
 )

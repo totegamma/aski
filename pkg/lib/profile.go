@@ -3,7 +3,7 @@ package lib
 import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/kznrluk/aski/config"
+	"github.com/kznrluk/aski/pkg/config"
 	"github.com/spf13/cobra"
 	"os"
 	"strings"

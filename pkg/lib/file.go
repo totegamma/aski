@@ -2,7 +2,7 @@ package lib
 
 import (
 	"fmt"
-	"github.com/kznrluk/aski/config"
+	"github.com/kznrluk/aski/pkg/config"
 	"os"
 	"path/filepath"
 	"strings"

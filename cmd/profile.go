@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/kznrluk/aski/lib"
+	"github.com/kznrluk/aski/pkg/lib"
 	"github.com/spf13/cobra"
 )
 

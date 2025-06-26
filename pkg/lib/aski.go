@@ -2,10 +2,10 @@ package lib
 
 import (
 	"fmt"
-	"github.com/kznrluk/aski/config"
-	"github.com/kznrluk/aski/conv"
-	"github.com/kznrluk/aski/file"
-	"github.com/kznrluk/aski/session"
+	"github.com/kznrluk/aski/pkg/config"
+	"github.com/kznrluk/aski/pkg/conv"
+	"github.com/kznrluk/aski/pkg/file"
+	"github.com/kznrluk/aski/pkg/session"
 	"github.com/spf13/cobra"
 	"io"
 	"os"

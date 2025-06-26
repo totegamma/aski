@@ -3,8 +3,8 @@ package chat
 import (
 	"context"
 	"errors"
-	"github.com/kznrluk/aski/config"
-	"github.com/kznrluk/aski/conv"
+	"github.com/kznrluk/aski/pkg/config"
+	"github.com/kznrluk/aski/pkg/conv"
 	"os"
 	"os/signal"
 	"strings"

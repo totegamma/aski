@@ -1,7 +1,7 @@
 package file
 
 import (
-	"github.com/kznrluk/aski/util"
+	"github.com/kznrluk/aski/pkg/util"
 	"os"
 	"path/filepath"
 )
