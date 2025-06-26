@@ -17,6 +17,7 @@ type (
 	Conversation interface {
 		GetMessages() []Message
 		GetMessageFromSha1(sha1partial string) (Message, error)
+		GetRootMessage() (Message, error)
 		Last() Message
 		MessagesFromHead() []Message
 		Append(role string, message string) Message
@@ -116,6 +117,16 @@ func (c *conv) Append(role string, message string) Message {
 	c.Messages = append(c.Messages, msg)
 
 	return msg
+}
+
+func (c *conv) GetRootMessage() (Message, error) {
+	for _, message := range c.Messages {
+		if message.ParentSha1 == "ROOT" {
+			return message, nil
+		}
+	}
+	return Message{}, fmt.Errorf("no root message found")
+
 }
 
 func (c *conv) GetMessageFromSha1(sha1partial string) (Message, error) {
