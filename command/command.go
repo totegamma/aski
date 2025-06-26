@@ -1,6 +1,7 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"github.com/charmbracelet/glamour"
 	"github.com/fatih/color"
@@ -13,10 +14,15 @@ import (
 	"strings"
 )
 
+var (
+	ErrShouldExit = errors.New("should exit")
+)
+
 type cmdFn func(commands []string, conv conv.Conversation) (conv.Conversation, bool, error)
 
 type cmd struct {
 	name        string
+	aliases     []string
 	description string
 	exec        cmdFn
 }
@@ -101,28 +107,43 @@ var availableCommands = []cmd{
 	},
 	{
 		name:        ":exit",
+		aliases:     []string{":q", ":quit"},
 		description: "Exit the program.",
 		exec: func(commands []string, conv conv.Conversation) (conv.Conversation, bool, error) {
-			return nil, false, fmt.Errorf("unknown command")
+			return nil, false, ErrShouldExit
 		},
 	},
 }
 
 func matchCommand(input string) (*cmd, bool) {
+
 	matched := false
 	var matchedCmd *cmd
+	overlap := 0
+	collision := false
 
 	for _, cmd := range availableCommands {
-		if strings.HasPrefix(cmd.name, input) {
-			if matched {
-				return nil, false // ambiguous input, more than one command matches
+		if cmd.name == input {
+			return &cmd, true // exact match
+		}
+
+		if len(cmd.name) < len(input) && strings.HasPrefix(input, cmd.name) {
+			if len(input) == overlap {
+				collision = true
+			} else {
+				overlap = len(input)
+				matchedCmd = &cmd
 			}
-			matched = true
-			matchedCmd = &cmd
+		}
+
+		for _, alias := range cmd.aliases {
+			if alias == input {
+				return &cmd, true
+			}
 		}
 	}
 
-	return matchedCmd, matched
+	return matchedCmd, matched && !collision
 }
 
 func unknownCommand() string {

@@ -23,6 +23,7 @@ import (
 )
 
 func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, restored bool) {
+
 	if isRestMode {
 		fmt.Printf("REST Mode \n")
 	}
@@ -46,6 +47,20 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 	cli := chat.ProvideChat(profile.Model, cfg)
 
 	first := !restored
+
+	defer func() {
+		if profile.AutoSave && !first {
+			fmt.Printf("\nSaving conversation... ")
+			fn, err := saveConversation(cv)
+			if err != nil {
+				fmt.Printf("\n error saving conversation: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println(fn)
+		}
+		os.Exit(0)
+	}()
+
 	for {
 		fmt.Printf("\n")
 		editor.PromptWriter = func(w io.Writer) (int, error) {
@@ -53,37 +68,37 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 		}
 
 		input, err, interrupt := getInput(editor)
-
-		history.Add(input)
-		if interrupt || strings.HasPrefix(input, ":ex") {
-			if profile.AutoSave && !first {
-				fmt.Printf("\nSaving conversation... ")
-				fn, err := saveConversation(cv)
-				if err != nil {
-					fmt.Printf("\n error saving conversation: %v\n", err)
-					os.Exit(1)
-				}
-				fmt.Println(fn)
-			}
-			os.Exit(0)
-		}
-
 		if err != nil {
 			fmt.Printf("Error Occured: %v\n", err)
 			continue
 		}
 
+		if interrupt {
+			return
+		}
+
+		history.Add(input)
+
 		if input == "" {
-			continue
+			return
 		}
 
-		cv, cont, commandErr := appendMessage(input, cv)
-		if commandErr != nil {
-			fmt.Printf("error: %v\n", commandErr)
-		}
+		if input[0] == ':' {
+			newcv, cont, commandErr := command.Parse(input, cv)
+			if commandErr != nil {
+				if errors.Is(commandErr, command.ErrShouldExit) {
+					return
+				}
+				fmt.Printf("error: %v\n", commandErr)
+			}
 
-		if !cont {
-			continue
+			if !cont {
+				continue
+			}
+
+			cv = newcv
+		} else {
+			cv.Append(conv.ChatRoleUser, input)
 		}
 
 		last := cv.Last()
@@ -181,22 +196,6 @@ func saveConversation(conv conv.Conversation) (string, error) {
 	}
 
 	return filename, nil
-}
-
-func appendMessage(input string, ctx conv.Conversation) (conv.Conversation, bool, error) {
-	if len(input) > 0 && input[0] == ':' && input != ":exit" {
-		ctx, cont, commandErr := command.Parse(input, ctx)
-		if commandErr != nil {
-			return ctx, false, commandErr
-		}
-
-		return ctx, cont, nil
-	}
-
-	// direct send message
-	ctx.Append(conv.ChatRoleUser, input)
-
-	return ctx, true, nil
 }
 
 func showPendingHeader(role string, to conv.Message) {
