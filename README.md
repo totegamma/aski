@@ -216,6 +216,21 @@ The default profile to be used can be changed by setting the value of Current to
 aski profile
 ```
 
+## Shortcut Example
+```
+function fzf-chat() {
+    local line=$(aski history | fzf-tmux -p80% --reverse --border-label ' chat ' --preview '\
+        file=$(echo {} | awk -F " " "{print \$1}")
+        aski history $file
+    ')
+    local filename=$(echo $line | awk -F " " '{print $1}')
+    BUFFER="aski --restore $filename"
+    CURSOR=$#BUFFER
+}
+zle -N fzf-chat
+bindkey '^h' fzf-chat
+```
+
 ## License
 
 MIT
