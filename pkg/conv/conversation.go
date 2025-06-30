@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"github.com/goccy/go-yaml"
 	"github.com/kznrluk/aski/pkg/config"
-	"github.com/kznrluk/aski/pkg/session"
 	"github.com/kznrluk/aski/pkg/util"
 	"github.com/kznrluk/go-anthropic"
 	"github.com/sashabaranov/go-openai"
+	"log/slog"
 	"strings"
 )
 
@@ -215,10 +215,8 @@ func (c conv) ToOpenAIMessage() []openai.ChatCompletionMessage {
 		})
 	}
 
-	if session.Verbose() {
-		for _, message := range chatMessages {
-			fmt.Printf("[%s]: %.32s\n", message.Role, message.Content)
-		}
+	for _, message := range chatMessages {
+		slog.Debug(fmt.Sprintf("[%s]: %.32s", message.Role, message.Content))
 	}
 
 	return chatMessages
@@ -244,10 +242,8 @@ func (c conv) ToAnthropicMessage() []anthropic.Message {
 		})
 	}
 
-	if session.Verbose() {
-		for _, message := range chatMessages {
-			fmt.Printf("[%s]: %.32s\n", message.Role, message.Content)
-		}
+	for _, message := range chatMessages {
+		slog.Debug(fmt.Sprintf("[%s]: %.32s", message.Role, message.Content))
 	}
 
 	return chatMessages

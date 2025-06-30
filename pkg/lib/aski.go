@@ -5,9 +5,9 @@ import (
 	"github.com/kznrluk/aski/pkg/config"
 	"github.com/kznrluk/aski/pkg/conv"
 	"github.com/kznrluk/aski/pkg/file"
-	"github.com/kznrluk/aski/pkg/session"
 	"github.com/spf13/cobra"
 	"io"
+	"log/slog"
 	"os"
 	"strings"
 )
@@ -18,13 +18,12 @@ func Aski(cmd *cobra.Command, args []string) {
 	model, _ := cmd.Flags().GetString("model")
 	fileGlobs, _ := cmd.Flags().GetStringSlice("file")
 	restore, _ := cmd.Flags().GetString("restore")
-	verbose, _ := cmd.Flags().GetBool("verbose")
 	content := strings.Join(args, " ")
-	session.SetVerbose(verbose)
 
+	isPipe := false
 	fileInfo, _ := os.Stdin.Stat()
 	if (fileInfo.Mode() & os.ModeNamedPipe) != 0 {
-		session.SetIsPipe(true)
+		isPipe = true
 	}
 
 	cfg, err := config.GetConfig()
@@ -34,13 +33,13 @@ func Aski(cmd *cobra.Command, args []string) {
 
 	if cfg.OpenAIAPIKey == "" && cfg.AnthropicAPIKey == "" {
 		configPath := config.MustGetAskiDir()
-		fmt.Printf("No API key found. Please set your API key in %s/config.yaml\n", configPath)
+		slog.Error(fmt.Sprintf("No API key found. Please set your API key in %s/config.yaml", configPath))
 		os.Exit(1)
 	}
 
 	prof, err := config.GetProfile(cfg, profileTarget)
 	if err != nil {
-		fmt.Printf("error getting profile: %v\n. using default profile.", err)
+		slog.Error(fmt.Sprintf("error getting profile: %v. using default profile.", err))
 		prof = config.InitialProfile()
 	}
 
@@ -52,26 +51,26 @@ func Aski(cmd *cobra.Command, args []string) {
 	if restore != "" {
 		load, fileName, err := ReadFileFromPWDAndHistoryDir(restore)
 		if err != nil {
-			fmt.Printf("error reading restore file: %v\n", err)
+			slog.Error(fmt.Sprintf("error reading restore file: %v", err))
 			os.Exit(1)
 		}
 
 		ctx, err = conv.FromYAML(load)
 		if err != nil {
-			fmt.Printf("error parsing restore file: %v\n", err)
+			slog.Error(fmt.Sprintf("error parsing restore file: %v", err))
 			os.Exit(1)
 		}
 
 		if len(fileGlobs) != 0 {
 			// TODO: We should be able to renew file contents from the globs
-			fmt.Printf("WARN: File globs are ignored when loading restore.\n")
+			slog.Warn("File globs are ignored when loading restore.")
 		}
 
 		if profileTarget != "" {
-			fmt.Printf("WARN: Profile is ignored when loading restore.\n")
+			slog.Warn("Profile is ignored when loading restore.")
 		}
 
-		println("Restore conversations from " + fileName)
+		slog.Info(fmt.Sprintf("Restoring conversation from %s", fileName))
 	} else {
 		ctx = conv.NewConversation(prof)
 		ctx.SetSystem(prof.SystemContext)
@@ -79,8 +78,8 @@ func Aski(cmd *cobra.Command, args []string) {
 		if len(fileGlobs) != 0 {
 			fileContents := file.GetFileContents(fileGlobs)
 			for _, f := range fileContents {
-				if content == "" && !session.IsPipe() {
-					fmt.Printf("Append File: %s\n", f.Name)
+				if content == "" && !isPipe {
+					slog.Info(fmt.Sprintf("Append File: %s", f.Name))
 				}
 				ctx.Append(conv.ChatRoleUser, fmt.Sprintf("Path: `%s`\n ```\n%s```", f.Path, f.Contents))
 			}
@@ -98,10 +97,10 @@ func Aski(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if session.IsPipe() {
+	if isPipe {
 		s, err := io.ReadAll(os.Stdin)
 		if err != nil {
-			fmt.Printf("error: %s", err.Error())
+			slog.Error(fmt.Sprintf("error reading from stdin: %v", err))
 			os.Exit(1)
 		}
 		ctx.Append(conv.ChatRoleUser, string(s))
@@ -109,12 +108,9 @@ func Aski(cmd *cobra.Command, args []string) {
 
 	if content != "" {
 		ctx.Append(conv.ChatRoleUser, content)
-	}
-
-	if content != "" {
 		_, err = OneShot(cfg, ctx, isRestMode)
 		if err != nil {
-			fmt.Printf("error: %s", err.Error())
+			slog.Error(fmt.Sprintf("error in one-shot mode: %v", err))
 			os.Exit(1)
 		}
 	} else {
