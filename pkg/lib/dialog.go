@@ -43,7 +43,11 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 	editor.Init()
 	fmt.Printf("Profile: %s, Model: %s \n", profile.ProfileName, profile.Model)
 
-	cli := chat.ProvideChat(profile.Model, cfg)
+	cli, err := chat.ProvideChat(profile.Vendor, profile.Model, cfg)
+	if err != nil {
+		fmt.Printf("error providing chat client: %v\n", err)
+		os.Exit(1)
+	}
 
 	first := !restored
 
@@ -135,7 +139,10 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 
 func OneShot(cfg config.Config, cv conv.Conversation, isRestMode bool) (string, error) {
 	profile := cv.GetProfile()
-	cli := chat.ProvideChat(profile.Model, cfg)
+	cli, err := chat.ProvideChat(profile.Vendor, profile.Model, cfg)
+	if err != nil {
+		return "", fmt.Errorf("error providing chat client: %v", err)
+	}
 
 	data, err := cli.Retrieve(cv, isRestMode)
 

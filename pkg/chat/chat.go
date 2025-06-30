@@ -7,7 +7,6 @@ import (
 	"github.com/kznrluk/aski/pkg/conv"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 )
 
@@ -23,12 +22,22 @@ var (
 	ErrCancelled = errors.New("cancelled")
 )
 
-func ProvideChat(model string, cfg config.Config) Chat {
-	if strings.HasPrefix(model, "claude") {
-		return NewAnthropic(cfg.AnthropicAPIKey)
-	}
+func ProvideChat(vendor string, model string, cfg config.Config) (Chat, error) {
 
-	return NewOpenAI(cfg.OpenAIAPIKey)
+	switch vendor {
+	case "openai":
+		if cfg.OpenAIAPIKey == "" {
+			return nil, errors.New("OpenAI API key is not set")
+		}
+		return NewOpenAI(cfg.OpenAIAPIKey), nil
+	case "anthropic":
+		if cfg.AnthropicAPIKey == "" {
+			return nil, errors.New("Anthropic API key is not set")
+		}
+		return NewAnthropic(cfg.AnthropicAPIKey), nil
+	default:
+		return nil, errors.New("unsupported vendor: " + vendor)
+	}
 }
 
 func createCancellableContext() (context.Context, context.CancelFunc) {

@@ -48,16 +48,6 @@ func Aski(cmd *cobra.Command, args []string) {
 		prof.Model = model
 	}
 
-	if strings.HasPrefix(prof.Model, "gpt") && cfg.OpenAIAPIKey == "" {
-		fmt.Printf("OpenAIAPIKey is required for GPT model. Please set your API key in %s/config.yaml\n", config.MustGetAskiDir())
-		os.Exit(1)
-	}
-
-	if strings.HasPrefix(prof.Model, "claude") && cfg.AnthropicAPIKey == "" {
-		fmt.Printf("AnthropicAPIKey is required for Claude model. Please set your API key in %s/config.yaml\n", config.MustGetAskiDir())
-		os.Exit(1)
-	}
-
 	var ctx conv.Conversation
 	if restore != "" {
 		load, fileName, err := ReadFileFromPWDAndHistoryDir(restore)

@@ -16,6 +16,7 @@ import (
 type Profile struct {
 	ProfileName      string           `yaml:"ProfileName"`
 	Model            string           `yaml:"Model"`
+	Vendor           string           `yaml:"Vendor"`
 	UserName         string           `yaml:"UserName"`
 	AutoSave         bool             `yaml:"AutoSave"`
 	ResponseFormat   string           `yaml:"ResponseFormat"`
@@ -176,6 +177,7 @@ func InitialProfile() Profile {
 		ResponseFormat: string(openai.ChatCompletionResponseFormatTypeText),
 		SystemContext:  "You are a kind and helpful chat AI. Sometimes you may say things that are incorrect, but that is unavoidable.",
 		Model:          openai.GPT4,
+		Vendor:         "openai",
 		Messages:       []PreMessage{},
 	}
 }
@@ -193,9 +195,8 @@ func validateProfile(profile Profile) error {
 	if profile.Model == "" {
 		return fmt.Errorf("model must not be empty")
 	}
-
-	if !strings.HasPrefix(profile.Model, "gpt") && !strings.HasPrefix(profile.Model, "claude") {
-		return fmt.Errorf("model must start with gpt or claude: %s", profile.Model)
+	if profile.Vendor == "" {
+		return fmt.Errorf("vendor must not be empty")
 	}
 
 	for _, message := range profile.Messages {
