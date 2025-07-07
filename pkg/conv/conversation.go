@@ -23,6 +23,7 @@ type (
 		Append(role string, message string) Message
 		SetSystem(message string)
 		GetSystem() string
+		GetFilename() string
 		SetProfile(profile config.Profile) error
 		Modify(m Message) error
 		ToOpenAIMessage() []openai.ChatCompletionMessage
@@ -33,6 +34,7 @@ type (
 	}
 
 	conv struct {
+		Filename string
 		Profile  config.Profile
 		System   string
 		Messages []Message
@@ -277,6 +279,10 @@ func (c conv) convertSystemToMessage() Message {
 	}
 }
 
+func (c conv) GetFilename() string {
+	return c.Filename
+}
+
 func NewConversation(profile config.Profile) Conversation {
 	return &conv{
 		Profile:  profile,
@@ -284,7 +290,7 @@ func NewConversation(profile config.Profile) Conversation {
 	}
 }
 
-func FromYAML(yamlBytes []byte) (Conversation, error) {
+func FromYAML(yamlBytes []byte, filename string) (Conversation, error) {
 	var c conv
 	err := yaml.Unmarshal(yamlBytes, &c)
 	if err != nil {
@@ -295,6 +301,8 @@ func FromYAML(yamlBytes []byte) (Conversation, error) {
 	for i, message := range c.Messages {
 		c.Messages[i].Content = strings.ReplaceAll(message.Content, "\\t", "\t")
 	}
+
+	c.Filename = filename
 
 	return &c, nil
 }

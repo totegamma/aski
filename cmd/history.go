@@ -54,7 +54,7 @@ func list() {
 			continue
 		}
 
-		ctx, err := conv.FromYAML(bytes)
+		ctx, err := conv.FromYAML(bytes, file.Name())
 		if err != nil {
 			fmt.Printf("Error parsing file %s: %v\n", file.Name(), err)
 			continue
@@ -92,7 +92,8 @@ func single(args []string) {
 		return
 	}
 
-	ctx, err := conv.FromYAML(bytes)
+	baseName := filepath.Base(filePath)
+	ctx, err := conv.FromYAML(bytes, baseName)
 	if err != nil {
 		fmt.Printf("Error parsing file %s: %v\n", filePath, err)
 		return

@@ -85,7 +85,7 @@ func aski(cmd *cobra.Command, args []string) {
 		prof.Model = model
 	}
 
-	var ctx conv.Conversation
+	var cv conv.Conversation
 	if restore != "" {
 		load, fileName, err := lib.ReadFileFromPWDAndHistoryDir(restore)
 		if err != nil {
@@ -93,7 +93,7 @@ func aski(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 
-		ctx, err = conv.FromYAML(load)
+		cv, err = conv.FromYAML(load, fileName)
 		if err != nil {
 			slog.Error(fmt.Sprintf("error parsing restore file: %v", err))
 			os.Exit(1)
@@ -110,8 +110,8 @@ func aski(cmd *cobra.Command, args []string) {
 
 		slog.Info(fmt.Sprintf("Restoring conversation from %s", fileName))
 	} else {
-		ctx = conv.NewConversation(prof)
-		ctx.SetSystem(prof.SystemContext)
+		cv = conv.NewConversation(prof)
+		cv.SetSystem(prof.SystemContext)
 
 		if len(fileGlobs) != 0 {
 			fileContents := file.GetFileContents(fileGlobs)
@@ -119,16 +119,16 @@ func aski(cmd *cobra.Command, args []string) {
 				if content == "" && !isPipe {
 					slog.Info(fmt.Sprintf("Append File: %s", f.Name))
 				}
-				ctx.Append(conv.ChatRoleUser, fmt.Sprintf("Path: `%s`\n ```\n%s```", f.Path, f.Contents))
+				cv.Append(conv.ChatRoleUser, fmt.Sprintf("Path: `%s`\n ```\n%s```", f.Path, f.Contents))
 			}
 		}
 
 		for _, i := range prof.Messages {
 			switch strings.ToLower(i.Role) {
 			case conv.ChatRoleUser:
-				ctx.Append(conv.ChatRoleUser, i.Content)
+				cv.Append(conv.ChatRoleUser, i.Content)
 			case conv.ChatRoleAssistant:
-				ctx.Append(conv.ChatRoleAssistant, i.Content)
+				cv.Append(conv.ChatRoleAssistant, i.Content)
 			default:
 				panic(fmt.Errorf("invalid role: %s", i.Role))
 			}
@@ -141,17 +141,17 @@ func aski(cmd *cobra.Command, args []string) {
 			slog.Error(fmt.Sprintf("error reading from stdin: %v", err))
 			os.Exit(1)
 		}
-		ctx.Append(conv.ChatRoleUser, string(s))
+		cv.Append(conv.ChatRoleUser, string(s))
 	}
 
 	if content != "" {
-		ctx.Append(conv.ChatRoleUser, content)
-		_, err = lib.OneShot(cfg, ctx, isRestMode)
+		cv.Append(conv.ChatRoleUser, content)
+		_, err = lib.OneShot(cfg, cv, isRestMode)
 		if err != nil {
 			slog.Error(fmt.Sprintf("error in one-shot mode: %v", err))
 			os.Exit(1)
 		}
 	} else {
-		lib.StartDialog(cfg, ctx, isRestMode, restore != "")
+		lib.StartDialog(cfg, cv, isRestMode)
 	}
 }

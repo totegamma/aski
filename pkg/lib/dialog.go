@@ -20,7 +20,7 @@ import (
 	"time"
 )
 
-func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, restored bool) {
+func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool) {
 
 	if isRestMode {
 		fmt.Printf("REST Mode \n")
@@ -48,10 +48,8 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 		os.Exit(1)
 	}
 
-	first := !restored
-
 	defer func() {
-		if profile.AutoSave && !first {
+		if profile.AutoSave {
 			fn, err := saveConversation(cv)
 			if err != nil {
 				fmt.Printf("\n error saving conversation: %v\n", err)
@@ -128,9 +126,6 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 
 		msg := cv.Append(conv.ChatRoleAssistant, data)
 		fmt.Print(yellow(fmt.Sprintf(" [%.*s]\n", 6, msg.Sha1)))
-		if first {
-			first = false
-		}
 	}
 }
 
@@ -177,7 +172,10 @@ func getInput(reader *readline.Editor) (string, error) {
 func saveConversation(conv conv.Conversation) (string, error) {
 	t := time.Now()
 
-	filename := fmt.Sprintf("%s.yaml", t.Format("20060102-150405"))
+	filename := conv.GetFilename()
+	if filename == "" {
+		filename = fmt.Sprintf("%s.yaml", t.Format("20060102-150405"))
+	}
 
 	homeDir, err := config.GetHomeDir()
 	if err != nil {
