@@ -10,11 +10,10 @@ import (
 	"github.com/kznrluk/aski/pkg/config"
 	"github.com/kznrluk/aski/pkg/conv"
 	"github.com/mattn/go-colorable"
-	"io"
-
 	"github.com/nyaosorg/go-readline-ny"
 	"github.com/nyaosorg/go-readline-ny/coloring"
 	"github.com/nyaosorg/go-readline-ny/simplehistory"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -136,16 +135,16 @@ func StartDialog(cfg config.Config, cv conv.Conversation, isRestMode bool, resto
 }
 
 func OneShot(cfg config.Config, cv conv.Conversation, isRestMode bool) (string, error) {
-    defer func() {
-        if cv.GetProfile().AutoSave {
-            fn, err := saveConversation(cv)
-            if err != nil {
-                fmt.Printf("\n error saving conversation: %v\n", err)
-            } else {
-                fmt.Println(fn)
-            }
-        }
-    }()
+	defer func() {
+		if cv.GetProfile().AutoSave {
+			fn, err := saveConversation(cv)
+			if err != nil {
+				fmt.Printf("\n error saving conversation: %v\n", err)
+			} else {
+				fmt.Println(fn)
+			}
+		}
+	}()
 
 	profile := cv.GetProfile()
 	cli, err := chat.ProvideChat(profile.Vendor, profile.Model, cfg)
