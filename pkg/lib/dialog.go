@@ -155,6 +155,8 @@ func OneShot(cfg config.Config, cv conv.Conversation, isRestMode bool) (string, 
 		return "", nil
 	}
 
+	cv.Append(conv.ChatRoleAssistant, data)
+
 	return data, nil
 }
 
