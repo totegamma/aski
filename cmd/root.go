@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -87,11 +88,13 @@ func aski(cmd *cobra.Command, args []string) {
 
 	var cv conv.Conversation
 	if restore != "" {
-		load, fileName, err := lib.ReadFileFromPWDAndHistoryDir(restore)
-		if err != nil {
-			slog.Error(fmt.Sprintf("error reading restore file: %v", err))
-			os.Exit(1)
+		histPath := config.MustGetHistoryDir()
+		if !strings.HasSuffix(restore, ".yaml") {
+			restore += ".yaml"
 		}
+		path := filepath.Join(histPath, restore)
+		fileName := filepath.Base(path)
+		load, err := os.ReadFile(path)
 
 		cv, err = conv.FromYAML(load, fileName)
 		if err != nil {
