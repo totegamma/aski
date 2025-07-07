@@ -3,7 +3,6 @@ package command
 import (
 	"errors"
 	"fmt"
-	"github.com/charmbracelet/glamour"
 	"github.com/fatih/color"
 	"github.com/kznrluk/aski/pkg/config"
 	"github.com/kznrluk/aski/pkg/conv"
@@ -32,7 +31,7 @@ var availableCommands = []cmd{
 		name:        ":history",
 		description: "Show conversation history.",
 		exec: func(commands []string, conv conv.Conversation) (conv.Conversation, bool, error) {
-			showContext(conv)
+			conv.Print()
 			return nil, false, nil
 		},
 	},
@@ -183,50 +182,6 @@ func changeHead(sha1Partial string, context conv.Conversation) error {
 	}
 
 	return nil
-}
-
-func showContext(conv conv.Conversation) {
-	yellow := color.New(color.FgHiYellow).SprintFunc()
-	blue := color.New(color.FgHiBlue).SprintFunc()
-
-	r, _ := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
-		glamour.WithWordWrap(100),
-	)
-
-	system := conv.GetSystem()
-	if system != "" {
-		fmt.Printf("%s\n", yellow("[System]"))
-		out, err := r.Render(system)
-		if err != nil {
-			fmt.Printf("error: create markdown failed: %s", err.Error())
-		}
-
-		out = strings.TrimSpace(out)
-		for _, context := range strings.Split(out, "\n") {
-			fmt.Printf("%s\n", context)
-		}
-	}
-
-	for _, msg := range conv.GetMessages() {
-		head := ""
-		if msg.Head {
-			head = "Head"
-		}
-		fmt.Printf("%s %s\n", yellow(fmt.Sprintf("[%.*s] %s -> [%.*s]", 6, msg.Sha1, msg.Role, 6, msg.ParentSha1)), blue(head))
-
-		out, err := r.Render(msg.Content)
-		if err != nil {
-			fmt.Printf("error: create markdown failed: %s", err.Error())
-		}
-
-		out = strings.TrimSpace(out)
-		for _, context := range strings.Split(out, "\n") {
-			fmt.Printf("%s\n", context)
-		}
-
-		fmt.Printf("\n")
-	}
 }
 
 func newMessage(cv conv.Conversation) (conv.Conversation, bool, error) {

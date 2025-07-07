@@ -111,9 +111,8 @@ func single(args []string) {
 		return
 	}
 
-	for _, msg := range ctx.GetMessages() {
-		fmt.Printf("%s: %s\n", msg.Role, msg.Content)
-	}
+	ctx.Print()
+
 }
 
 func init() {

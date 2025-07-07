@@ -4,6 +4,8 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"github.com/charmbracelet/glamour"
+	"github.com/fatih/color"
 	"github.com/goccy/go-yaml"
 	"github.com/kznrluk/aski/pkg/config"
 	"github.com/kznrluk/aski/pkg/util"
@@ -31,6 +33,7 @@ type (
 		ChangeHead(sha string) (Message, error)
 		GetProfile() config.Profile
 		ToYAML() ([]byte, error)
+		Print()
 	}
 
 	conv struct {
@@ -281,6 +284,50 @@ func (c conv) convertSystemToMessage() Message {
 
 func (c conv) GetFilename() string {
 	return c.Filename
+}
+
+func (c conv) Print() {
+	yellow := color.New(color.FgHiYellow).SprintFunc()
+	blue := color.New(color.FgHiBlue).SprintFunc()
+
+	r, _ := glamour.NewTermRenderer(
+		glamour.WithAutoStyle(),
+		glamour.WithWordWrap(100),
+	)
+
+	system := c.GetSystem()
+	if system != "" {
+		fmt.Printf("%s\n", yellow("[System]"))
+		out, err := r.Render(system)
+		if err != nil {
+			fmt.Printf("error: create markdown failed: %s", err.Error())
+		}
+
+		out = strings.TrimSpace(out)
+		for _, context := range strings.Split(out, "\n") {
+			fmt.Printf("%s\n", context)
+		}
+	}
+
+	for _, msg := range c.GetMessages() {
+		head := ""
+		if msg.Head {
+			head = "Head"
+		}
+		fmt.Printf("%s %s\n", yellow(fmt.Sprintf("[%.*s] %s -> [%.*s]", 6, msg.Sha1, msg.Role, 6, msg.ParentSha1)), blue(head))
+
+		out, err := r.Render(msg.Content)
+		if err != nil {
+			fmt.Printf("error: create markdown failed: %s", err.Error())
+		}
+
+		out = strings.TrimSpace(out)
+		for _, context := range strings.Split(out, "\n") {
+			fmt.Printf("%s\n", context)
+		}
+
+		fmt.Printf("\n")
+	}
 }
 
 func NewConversation(profile config.Profile) Conversation {
