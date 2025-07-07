@@ -174,6 +174,10 @@ func getInput(reader *readline.Editor) (string, error) {
 func saveConversation(conv conv.Conversation) (string, error) {
 	t := time.Now()
 
+	if len(conv.GetMessages()) == 0 {
+		return "", nil
+	}
+
 	filename := conv.GetFilename()
 	if filename == "" {
 		filename = fmt.Sprintf("%s.yaml", t.Format("20060102-150405"))

@@ -34,7 +34,7 @@ type (
 	}
 
 	conv struct {
-		Filename string
+		Filename string `yaml:"-"`
 		Profile  config.Profile
 		System   string
 		Messages []Message
