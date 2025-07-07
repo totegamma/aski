@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -43,6 +44,13 @@ func list() {
 	if len(files) == 0 {
 		return
 	}
+
+	sort.Slice(files, func(i, j int) bool {
+		fi, _ := files[i].Info()
+		fj, _ := files[j].Info()
+		return fi.ModTime().After(fj.ModTime())
+	})
+
 	for _, file := range files {
 		if file.IsDir() {
 			continue
@@ -67,8 +75,12 @@ func list() {
 		}
 
 		name := strings.TrimSuffix(file.Name(), filepath.Ext(file.Name()))
+		content := strings.ReplaceAll(root.Content, "\n", " ")
+		if len(content) > 50 {
+			content = content[:50] + "..."
+		}
 
-		fmt.Printf("%s %s\n", name, root.Content)
+		fmt.Printf("%s %s\n", name, content)
 	}
 }
 
