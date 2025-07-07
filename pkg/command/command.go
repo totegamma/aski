@@ -117,7 +117,6 @@ var availableCommands = []cmd{
 
 func matchCommand(input string) (*cmd, bool) {
 
-	matched := false
 	var matchedCmd *cmd
 	overlap := 0
 	collision := false
@@ -127,7 +126,7 @@ func matchCommand(input string) (*cmd, bool) {
 			return &cmd, true // exact match
 		}
 
-		if len(cmd.name) < len(input) && strings.HasPrefix(input, cmd.name) {
+		if len(input) < len(cmd.name) && strings.HasPrefix(cmd.name, input) {
 			if len(input) == overlap {
 				collision = true
 			} else {
@@ -143,7 +142,7 @@ func matchCommand(input string) (*cmd, bool) {
 		}
 	}
 
-	return matchedCmd, matched && !collision
+	return matchedCmd, matchedCmd != nil && !collision
 }
 
 func unknownCommand() string {
